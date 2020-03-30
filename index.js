@@ -9,13 +9,14 @@ const readline = require('readline');
 const {google} = require('googleapis');
 const temperatureStrings = [
   "🌡 I know you're really cool ❄️, but could you quantify that specifically in degrees centigrade?",
-  "🌡 BOT DEMANDS YOUR TEMPERATURE!",
-  "🌡 Is that a thermometer in your pocket?",
-  "🌡 Aren't you looking hot today! No seriously, could you check your temperature?",
-  "🌡 What's the difference between an oral and a rectal thermometer? The taste.",
-  "🌡 Scientifically speaking you should be reporting in Kelvin, but I will accept celcius this one time.",
-  "🌡 Greetings human, for your own safety please reveal your current temperature",
-  "🌡 Sorry, my thermal camera is malfunctioning, please input your temperature."
+  "🌡 BOT DEMANDS YOUR TEMPERATURE! 🤖",
+  "🌡 Is that a thermometer in your pocket? 🦾",
+  "🌡 Aren't you looking hot today! No seriously, could you check your temperature? 🔥",
+  "🌡 What's the difference between an oral and a rectal thermometer? The taste. 🤢",
+  "🌡 Scientifically speaking you should be reporting in Kelvin, but I will accept Celcius this one time. 🤓",
+  "🌡 Greetings human, for your own safety please reveal your current temperature. 🤒",
+  "🌡 Sorry, my thermal camera is malfunctioning, please input your temperature. 📸",
+  "🌡 What do thermometers wear for underwear? Kelvin Klein! 🤣"
 ];
 
 const readingStrings = [
@@ -125,7 +126,7 @@ function writeTemp(auth, params) {
       range: 'Readings!A2:E',
       values: [[
         params.u, 
-        "=LOOKUP(A2,Users!B:B,Users!C:C)", 
+        '=VLOOKUP(INDIRECT("A"&row()),Users!B:C,2, FALSE)',
         params.t, 
         DateTime.local().setZone("Asia/Singapore").toISODate(), 
         (DateTime.local().setZone("Asia/Singapore").hour >= 12) ? "PM" : "AM"
@@ -156,29 +157,40 @@ exports.notifyEveryone = (req, res) => {
 };
 
 exports.slackAttack = (req, res) => {
-  switch (req.body.type) {
-    case "url_verification":
-      res.send(req.body);
-      break;
-    case "event_callback":
-      const e = req.body.event
-      res.sendStatus(200);
-      if (!e.bot_profile && e.channel_type == "im") {
-        if (!isFinite(String(e.text).trim() || NaN)) {
-          sendMessage(e.user, "That doesn't appear to be a number and I don't do small talk. Could you please try again?");
-        } else {
-          if (e.text > 50) {
-            sendMessage(e.user, "Wow that's really hot 🔥! Are you sure that's in *degrees celcius*?");
+  if (req.get("X-Slack-Retry-Num")) {
+    res.sendStatus(200);
+    console.log('Caught a retry #' + req.get("X-Slack-Retry-Num"))
+  } else {
+    switch (req.body.type) {
+      case "url_verification":
+        res.send(req.body);
+        break;
+      case "event_callback":
+        const e = req.body.event
+        res.sendStatus(200);
+        if (!e.bot_profile && e.channel_type == "im") {
+          if (!isFinite(String(e.text).trim() || NaN)) {
+            sendMessage(e.user, "That doesn't appear to be a number and I don't do small talk. Could you please try again?");
           } else {
-            authorize(JSON.parse(process.env.gsuiteCreds), writeTemp, {u: e.user, t: e.text});
-            sendMessage(e.user, readingStrings[Math.floor(Math.random() * readingStrings.length)]);
+            if (e.text > 50) {
+              sendMessage(e.user, "Wow that's really hot 🔥! Are you sure that's in *degrees celcius*?");
+            } else if (e.text > 35 && e.text < 37.5) {
+              authorize(JSON.parse(process.env.gsuiteCreds), writeTemp, {u: e.user, t: e.text});
+              sendMessage(e.user, readingStrings[Math.floor(Math.random() * readingStrings.length)]);            
+            } else if (e.text < 35) {
+              sendMessage(e.user, "Wow that's really cold ❄️! I think your thermal measuring device requires calibration. Try again?");
+            } else {
+              authorize(JSON.parse(process.env.gsuiteCreds), writeTemp, {u: e.user, t: e.text});
+              sendMessage(e.user, "Fever detected! Alerting team! 🥵");
+              sendMessage("U024Z7KAF", "FEVER DETECTED in " + e.user);
+            }
           }
-        }        
-      }
-      break;
-    default:
-      res.sendStatus(500);
-      console.log("Well I couldn't figure that one out.")
-      break;
+        }      
+        break;
+      default:
+        res.sendStatus(500);
+        console.log("Well I couldn't figure that one out.")
+        break;
+    }
   }
 };
