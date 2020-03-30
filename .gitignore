@@ -106,3 +106,4 @@ dist
 # Credentials
 credentials.json
 token.json
+.env.yaml
