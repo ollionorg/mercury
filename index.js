@@ -162,13 +162,13 @@ function kelvinToC(kelvin) {
   return celcius;
 }
 
-function farnheitToC(farnheit) {
+function fahrenheitToC(farnheit) {
   celcius = (farnheit - 32) * (5/9);
   return celcius;
 }
 
 function convertResponse(user, response) {
-  // Simple Number to Celcius/Farnheit/Kelvin converter
+  // Simple Number to Celcius/Fahrenheit/Kelvin converter
   // Currently range based without RegEx for UoM
   celcius = response;
   if (response > 200) {
@@ -176,9 +176,9 @@ function convertResponse(user, response) {
     celcius =  kelvinToC(response);
     sendMessage(user, `Guess we a' talkin' Kelvin then 🤓 BTW, for the mere mortals, that's ${celcius}℃`);
   } else if (response > 75) {
-    // Assuming Farnheit
-    celcius =  farnheitToC(response);
-    sendMessage(user, `Farnheit? 🥺 BTW, most of the world would say ${celcius}℃`);
+    // Assuming Fahrenheit
+    celcius =  fahrenheitToC(response);
+    sendMessage(user, `Fahrenheit? 🥺 BTW, most of the world would say ${celcius}℃`);
   }
   return celcius;
 }
