@@ -166,6 +166,32 @@ function sendMessage(u, m) {
   })();
 }
 
+function kelvinToC(kelvin) {
+  celcius = kelvin - 273.15;
+  return celcius;
+}
+
+function fahrenheitToC(farnheit) {
+  celcius = (farnheit - 32) * (5/9);
+  return celcius;
+}
+
+function convertResponse(user, response) {
+  // Simple Number to Celcius/Fahrenheit/Kelvin converter
+  // Currently range based without RegEx for UoM
+  celcius = response;
+  if (response > 200) {
+    // Assuming Kelvin
+    celcius =  kelvinToC(response);
+    sendMessage(user, `Guess we a' talkin' Kelvin then 🤓 BTW, for the mere mortals, that's ${celcius}℃`);
+  } else if (response > 75) {
+    // Assuming Fahrenheit
+    celcius =  fahrenheitToC(response);
+    sendMessage(user, `Fahrenheit? 🥺 BTW, most of the world would say ${celcius}℃`);
+  }
+  return celcius;
+}
+
 exports.notifyEveryone = (req, res) => {
   //Pull team data from environment
   teamData = JSON.parse(process.env[req.query.slack]);
@@ -227,15 +253,16 @@ exports.slackAttack = (req, res) => {
           if (!isFinite(String(e.text).trim() || NaN)) {
             sendMessage(e.user, "That doesn't appear to be a number and I don't do small talk. Could you please try again?");
           } else {
-            if (e.text > 50) {
+            userTempC = convertResponse(e.user, e.text);
+            if (userTempC > 50) {
               sendMessage(e.user, "Wow that's really hot 🔥! Are you sure that's in *degrees celcius*?");
-            } else if (e.text >= 35 && e.text < 37.5) {
-              authorize(JSON.parse(process.env.gsuiteCreds), writeTemp, {u: e.user, t: e.text, a: amFlag});
+            } else if (userTempC >= 35 && userTempC < 37.5) {
+              authorize(JSON.parse(process.env.gsuiteCreds), writeTemp, {u: e.user, t: userTempC, a: amFlag});
               sendMessage(e.user, readingStrings[Math.floor(Math.random() * readingStrings.length)]);            
-            } else if (e.text < 35) {
+            } else if (userTempC < 35) {
               sendMessage(e.user, "Wow that's really cold ❄️! I think your thermal measuring device requires calibration. Try again?");
             } else {
-              authorize(JSON.parse(process.env.gsuiteCreds), writeTemp, {u: e.user, t: e.text, a: amFlag});
+              authorize(JSON.parse(process.env.gsuiteCreds), writeTemp, {u: e.user, t: userTempC, a: amFlag});
               sendMessage(e.user, "Fever detected! Alerting team! 🥵");
               sendMessage(teamData.emergencyUser, "FEVER DETECTED in " + e.user);
             }
