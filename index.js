@@ -174,11 +174,11 @@ function convertResponse(user, response) {
   if (response > 200) {
     // Assuming Kelvin
     celcius =  kelvinToC(response);
-    sendMessage(user, "Guess we a'talkin' Kelvin then 🤓 BTW, for the mortals, that's " + celcius + "℃");
+    sendMessage(user, `Guess we a' talkin' Kelvin then 🤓 BTW, for the mere mortals, that's ${celcius}℃`);
   } else if (response > 75) {
     // Assuming Farnheit
     celcius =  farnheitToC(response);
-    sendMessage(user, "Farnheit? 🥺 BTW, most of the world would say " + celcius + "℃");
+    sendMessage(user, `Farnheit? 🥺 BTW, most of the world would say ${celcius}℃`);
   }
   return celcius;
 }
