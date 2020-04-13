@@ -1,12 +1,15 @@
-const { WebClient } = require("@slack/web-api");
-const token = process.env.slackToken;
+//Unique bot identifiers and secrets from Slack
 const botId = process.env.slackBot;
-const slack = new WebClient(token);
-const { DateTime } = require('luxon');
+const clientId = process.env.clientId;
+const clientSecret = process.env.clientSecret;
 
-const fs = require('fs');
-const readline = require('readline');
+//Set APIs and libraries up
+const { WebClient } = require("@slack/web-api");
 const {google} = require('googleapis');
+const { DateTime } = require('luxon');
+const axios = require('axios');
+
+//Ask for temperature
 const temperatureStrings = [
   "🌡 I know you're really cool ❄️, but could you quantify that specifically in degrees centigrade?",
   "🌡 BOT DEMANDS YOUR TEMPERATURE! 🤖",
@@ -21,6 +24,7 @@ const temperatureStrings = [
   "🌡 I'm feeling lonely today. Do you have a temperature to cheer me up? 🥺"
 ];
 
+//Thank for temperature
 const readingStrings = [
   "Thank you! You've made this bot very happy! 🤖",
   "You know I've seen a lot of temperatures in my time, but yours are always the best 💛",
@@ -32,14 +36,17 @@ const readingStrings = [
   "Stay chill my homosapien 🥶"
 ];
 
+//Welcome to @mercury
 const welcomeStrings = [
   "Hi there! I'm @mercury and I'm a temperature taking bot. My job is to make sure my humans don't overheat 🤒"
 ];
 
 // If modifying these scopes, delete token.json.
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
+
 let sendList = [];
 let sheetId = "";
+let slack = "";
 
 function authorize(credentials, callback, params) {
   const {client_secret, client_id, redirect_uris} = credentials.installed;
@@ -102,14 +109,16 @@ const resolveEmailsAndUpdateSheet = async (params) => {
 } 
 
 function getUsers(auth, params) {
-  const sheets = google.sheets({version: 'v4', auth});  
-  let values = [];
+  const sheets = google.sheets({version: 'v4', auth});
   sheets.spreadsheets.values.get({
     spreadsheetId: sheetId,
     range: 'Users!A2:D',
   }, (err, res) => {
     if (err) return console.log('The API returned an error: ' + err);    
     const rows = res.data.values;
+    
+    console.log("SheetResult = " + rows);
+
     if (rows.length) {      
       resolveEmailsAndUpdateSheet({rows: rows, auth: auth});
     } else {
@@ -119,7 +128,7 @@ function getUsers(auth, params) {
 }
 
 function writeTemp(auth, params) {
-  console.log(params);
+  console.log(params);  
   const sheets = google.sheets({version: 'v4', auth});
 
   const req = {
@@ -134,7 +143,7 @@ function writeTemp(auth, params) {
         '=VLOOKUP(INDIRECT("A"&row()),Users!B:C,2, FALSE)',
         params.t, 
         DateTime.local().setZone("Asia/Singapore").toISODate(), 
-        (params.a) ? "AM" : ((DateTime.local().setZone("Asia/Singapore").hour >= 12) ? "PM" : "AM"),
+        (params.a) ? "AM" : ((DateTime.local().setZone("Asia/Singapore").hour >= 13) ? "PM" : "AM"),
         DateTime.local().setZone("Asia/Singapore").toLocaleString(DateTime.DATETIME_SHORT)
       ]]
     }
@@ -184,9 +193,36 @@ function convertResponse(user, response) {
 }
 
 exports.notifyEveryone = (req, res) => {
-  sheetId = process.env[req.query.slack];
+  //Pull team data from environment
+  teamData = JSON.parse(process.env[req.query.slack]);
+
+  slack = new WebClient(teamData.slackToken);
+  sheetId = teamData.sheetId;
+  
   authorize(JSON.parse(process.env.gsuiteCreds), getUsers);
   res.sendStatus(200);
+};
+
+exports.auth = (req, res) => {
+  if (req.query.code) {
+    console.log(req.query);
+    const c = req.query.code;
+
+    axios.post("https://slack.com/api/oauth.v2.access", "code=" + c, {
+      auth: {
+        username: clientId,
+        password: clientSecret
+      },
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
+    }).then(function(response) {
+      console.log(response.data);
+      res.send(response.data);
+    });
+  } else {
+    res.redirect(301, "https://slack.com/oauth/authorize?client_id=" + clientId + "&scope=channels:read chat:write:bot users.profile:read users:read users:read.email&redirect_uri=&state=")  
+  }  
 };
 
 exports.slackAttack = (req, res) => {
@@ -199,9 +235,14 @@ exports.slackAttack = (req, res) => {
         res.send(req.body);
         break;
       case "event_callback":      
-        sheetId = process.env[e.body.team_id];
-
+        //Pull team data from environment
+        teamData = JSON.parse(process.env[req.body.team_id]);
+        
+        slack = new WebClient(teamData.slackToken);
+        sheetId = teamData.sheetId;
+        
         const e = req.body.event;
+
         let amFlag = false;
         res.sendStatus(200);        
         if (!e.bot_profile && e.channel_type == "im") {
@@ -215,7 +256,7 @@ exports.slackAttack = (req, res) => {
             userTempC = convertResponse(e.user, e.text);
             if (userTempC > 50) {
               sendMessage(e.user, "Wow that's really hot 🔥! Are you sure that's in *degrees celcius*?");
-            } else if (userTempC > 35 && userTempC < 37.5) {
+            } else if (userTempC >= 35 && userTempC < 37.5) {
               authorize(JSON.parse(process.env.gsuiteCreds), writeTemp, {u: e.user, t: userTempC, a: amFlag});
               sendMessage(e.user, readingStrings[Math.floor(Math.random() * readingStrings.length)]);            
             } else if (userTempC < 35) {
@@ -223,7 +264,7 @@ exports.slackAttack = (req, res) => {
             } else {
               authorize(JSON.parse(process.env.gsuiteCreds), writeTemp, {u: e.user, t: userTempC, a: amFlag});
               sendMessage(e.user, "Fever detected! Alerting team! 🥵");
-              sendMessage("U024Z7KAF", "FEVER DETECTED in " + e.user);
+              sendMessage(teamData.emergencyUser, "FEVER DETECTED in " + e.user);
             }
           }
         }      
