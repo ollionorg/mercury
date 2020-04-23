@@ -38,7 +38,7 @@ const readingStrings = [
 
 //Welcome to @mercury
 const welcomeStrings = [
-  "Hi there! I'm @mercury and I'm a temperature taking bot. My job is to make sure my humans don't overheat 🤒"
+  "Hi there! I'm @mercury and I'm a temperature taking bot. My job is to make sure my humans don't overheat 🤒. Just slack me your temperature and I'll remember it. If you forget to give me your morning temperature you can send me your reading suffixed with `AM` even in the afternoon."
 ];
 
 // If modifying these scopes, delete token.json.
@@ -154,11 +154,14 @@ function writeTemp(auth, params) {
 
 function sendMessage(u, m) {
   (async () => {
+    console.log(`Sending message to ${u}`);
     // Post a message to the channel, and await the result.
     // Find more arguments and details of the response: https://api.slack.com/methods/chat.postMessage
     const result = await slack.chat.postMessage({
       text: m,
       channel: u,
+    }).catch(e => {      
+      console.log(e);
     });
 
     // The result contains an identifier for the message, `ts`.
@@ -255,7 +258,7 @@ exports.slackAttack = (req, res) => {
           } else {
             userTempC = convertResponse(e.user, e.text);
             if (userTempC > 50) {
-              sendMessage(e.user, "Wow that's really hot 🔥! Are you sure that's in *degrees celcius*?");
+              sendMessage(e.user, "Wow that's really hot 🔥! Are you sure that's right?");
             } else if (userTempC >= 35 && userTempC < 37.5) {
               authorize(JSON.parse(process.env.gsuiteCreds), writeTemp, {u: e.user, t: userTempC, a: amFlag});
               sendMessage(e.user, readingStrings[Math.floor(Math.random() * readingStrings.length)]);            
