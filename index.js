@@ -57,7 +57,7 @@ function authorize(credentials, callback, params) {
   callback(oAuth2Client, params);
 }
 
-function writeUsers(auth, params) {
+async function writeUsers(auth, params) {
   const sheets = google.sheets({ version: 'v4', auth });
   let values = [];
 
@@ -86,9 +86,12 @@ function writeUsers(auth, params) {
 
   sheets.spreadsheets.values.update(req).then((res) => console.log(res.data));
   console.log(sendList);
-  sendList.forEach(u => {
-    sendMessage(u, temperatureStrings[Math.floor(Math.random() * temperatureStrings.length)]);
-  });
+  // sendList.forEach(u => {
+  //   sendMessage(u, temperatureStrings[Math.floor(Math.random() * temperatureStrings.length)]);
+  // });
+  for (let u of sendList) {
+    await sendMessage(u, temperatureStrings[Math.floor(Math.random() * temperatureStrings.length)]);
+  }
 }
 
 const resolveEmailsAndUpdateSheet = async (params) => {
@@ -152,7 +155,7 @@ function writeTemp(auth, params) {
   sheets.spreadsheets.values.append(req).then((res) => console.log(res.data));
 }
 
-function sendMessage(u, m) {
+async function sendMessage(u, m) {
   (async () => {
     console.log(`Sending message to ${u}`);
     // Post a message to the channel, and await the result.
@@ -170,6 +173,7 @@ function sendMessage(u, m) {
     } else {
       console.log(`Failed to send message in conversation ${u}`);
     }
+    return result;
   })();
 }
 
