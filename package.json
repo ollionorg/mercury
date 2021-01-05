@@ -19,7 +19,7 @@
   "dependencies": {
     "@slack/events-api": "^2.3.2",
     "@slack/web-api": "^5.8.0",
-    "axios": "^0.19.2",
+    "axios": "^0.21.1",
     "googleapis": "^39.2.0",
     "luxon": "^1.22.2"
   },
