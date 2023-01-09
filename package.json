@@ -21,7 +21,7 @@
     "@slack/web-api": "^5.8.0",
     "axios": "^0.19.2",
     "googleapis": "^39.2.0",
-    "luxon": "^1.22.2"
+    "luxon": "^2.5.2"
   },
   "devDependencies": {
     "@google-cloud/functions-framework": "^1.5.0"
