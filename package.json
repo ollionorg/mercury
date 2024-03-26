@@ -17,11 +17,11 @@
   },
   "homepage": "https://github.com/cldcvr/mercury#readme",
   "dependencies": {
-    "@slack/events-api": "^2.3.2",
-    "@slack/web-api": "^5.8.0",
-    "axios": "^0.19.2",
-    "googleapis": "^39.2.0",
-    "luxon": "^1.22.2"
+    "@slack/events-api": "^2.3.4",
+    "@slack/web-api": "^5.15.0",
+    "axios": "^0.28.0",
+    "googleapis": "^134.0.0",
+    "luxon": "^1.28.1"
   },
   "devDependencies": {
     "@google-cloud/functions-framework": "^1.5.0"
